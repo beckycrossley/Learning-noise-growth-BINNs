@@ -8,6 +8,7 @@ For more information, see the associated manuscript: "A likelihood-based framewo
 
 All of the code is implemented using Python and the open source machine learning framework, PyTorch.
 
-The Jupyter notebook "figure_creation.ipynb" demonstrates the commands needed to reproduce the results in the manuscript, and relies on the functions defined in "ODE_BINN_fcts.py".
+The Jupyter notebook "figure_creation_lessdata_nodgdu.ipynb" demonstrates the commands needed to reproduce the results in the manuscript, and relies on the functions defined in "ODE_BINN_fcts_lessdata_nodgdu.py".
+The equivalent files without the suffix "_lessdata_nodgdu" show implementation for data sampled every minute and with a biological restriction of non-negativity of the derivative of the densities.
 Synthetic data can be found in the folder entitled "synethtic_datasets_power", whilst the outputs from BINN training can be found in the other folders. 
 These are included such that users can save time and upload the best trained BINN to interrogate results, rather than having to rerun the full training process every time.  
