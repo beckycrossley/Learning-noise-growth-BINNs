@@ -895,7 +895,7 @@ class plotters:
 
             ax = axes[0, j]
             if C_reps is not None:
-                ax.plot(t, C_reps.T, alpha=0.12, color="#888888")
+                ax.plot(t, C_reps.T, alpha=0.12, color="#888888", marker = 'x', linestyle = 'None')
             if truth is not None:
                 ax.plot(truth["t"], truth["C"], label="Truth")
             else:
@@ -927,6 +927,7 @@ class plotters:
             ax.fill_between(Cgrid, glo, gup, alpha=0.2, label="g band")
             ax.plot(Cgrid, gmu, label="g mean")
             ax.set_xlabel("u")
+            # ax.set_xlim(-0.5, 10.5)
             if j == 0: 
                 ax.set_ylabel("g(u)")
                 ax.legend(loc="best")
@@ -949,6 +950,35 @@ class plotters:
                 ax.plot(t, pred, label="Model prediction")
             else:
                 ax.text(0.02, 0.80, "No learned noise stored", transform=ax.transAxes, fontsize=9)
+
+            sigma_base_runs = ens.get("sigma_base_runs")
+            beta_runs = ens.get("beta_runs")
+
+            text_lines = []
+
+            if sigma_base_runs is not None:
+                sigma_base_mean = np.nanmean(sigma_base_runs)
+                text_lines.append(rf"$\sigma_0 = {sigma_base_mean:.2f}$")
+
+            if beta_runs is not None:
+                beta_mean = np.nanmean(beta_runs)
+                text_lines.append(rf"$\alpha = {beta_mean:.2f}$")
+
+            if text_lines:
+                ax.text(
+                    0.95, 0.05,
+                    "\n".join(text_lines),
+                    transform=ax.transAxes,
+                    ha="right",
+                    va="bottom",
+                    fontsize=8,
+                    bbox=dict(
+                        boxstyle="round,pad=0.3",
+                        facecolor="white",
+                        alpha=0.85,
+                        edgecolor="none"
+                    )
+                )
 
             tag = "CV" if show_cv else "σ(t)"
             ax.set_xlabel("t")
