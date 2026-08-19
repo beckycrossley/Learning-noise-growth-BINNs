@@ -924,7 +924,7 @@ class plotters:
             ax.fill_between(Cgrid, glo, gup, alpha=0.2, label="g band")
             ax.plot(Cgrid, gmu, label="g mean")
             ax.set_xlabel("u")
-            # ax.set_xlim(-0.5, 10.5)
+            ax.set_xlim(-0.5, 10.5)
             if j == 0: 
                 ax.set_ylabel("g(u)")
                 ax.legend(loc="best")
@@ -947,6 +947,21 @@ class plotters:
                 ax.plot(t, pred, label="Model prediction")
             else:
                 ax.text(0.02, 0.80, "No learned noise stored", transform=ax.transAxes, fontsize=9)
+
+            if j == 0:
+                sigma0_true, alpha_true = 0.1, 0.0
+                C_true = true_log
+            elif j == 1:
+                sigma0_true, alpha_true = 0.05, 0.5
+                C_true = true_gom
+            else:
+                sigma0_true, alpha_true = 0.2, 1
+                C_true = true_rich
+
+            sigma_true = sigma0_true * np.maximum(C_true, 0.0) ** alpha_true
+
+            ax.plot(t, sigma_true, ls="--", label="True noise")
+
 
             sigma_base_runs = ens.get("sigma_base_runs")
             beta_runs = ens.get("beta_runs")
@@ -1143,48 +1158,314 @@ class plotters:
         colors_for_box = []
         spacing = 2.0
         cur_x = 1.0
+        # for i, ex in enumerate(experiments):
+        #     b = betas_list[i]
+        #     s = sigmas_list[i]
+        #     if not np.all(np.isnan(b)):
+        #         data_for_box.append(b[~np.isnan(b)])
+        #         pos.append(cur_x)
+        #         labels_for_box.append(r'$\alpha$ ' + f'({ex.get("label")})')
+        #         colors_for_box.append(ex.get("color"))
+        #     cur_x += 0.9
+        #     if not np.all(np.isnan(s)):
+        #         data_for_box.append(s[~np.isnan(s)])
+        #         pos.append(cur_x)
+        #         labels_for_box.append(r'σ₀ ' + f'({ex.get("label")})')
+        #         colors_for_box.append(ex.get("color"))
+        #     cur_x += spacing
+
+        # if len(data_for_box):
+        #     bplots = ax2.boxplot(data_for_box, positions=pos, patch_artist=True, widths=0.6, showmeans=True)
+        #     for patch, col in zip(bplots['boxes'], colors_for_box):
+        #         patch.set_facecolor('white'); patch.set_edgecolor(col); patch.set_linewidth(1.4)
+        #     for d,p,c in zip(data_for_box, pos, colors_for_box):
+        #         jitter = np.random.normal(0, 0.03, size=len(d))
+        #         ax2.scatter(np.full(len(d), p) + jitter, d, color=c, edgecolor='k', s=26)
+        #     for i, ex in enumerate(experiments):
+        #         sig_t = ex.get("sigma_true")
+        #         bet_t = ex.get("beta_true")
+        #         if bet_t is not None:
+        #             lab = r'$\alpha$ ' + f'({ex.get("label")})'
+        #             if lab in labels_for_box:
+        #                 idx = labels_for_box.index(lab)
+        #                 ax2.axhline(bet_t, color=colors_for_box[idx], ls='--')
+        #         if sig_t is not None:
+        #             lab2 = r'σ₀ (' + ex.get("label") + ')'
+        #             if lab2 in labels_for_box:
+        #                 idx2 = labels_for_box.index(lab2)
+        #                 ax2.axhline(sig_t, color=colors_for_box[idx2], ls=':')
+        #     ax2.set_xticks(pos)
+        #     ax2.set_xticklabels(labels_for_box, rotation=40)
+        #     ax2.grid(axis='y', ls=':', alpha=0.3)
+        # else:
+        #     ax2.text(0.5, 0.5, "No learned params found", ha='center')
+
+        # plt.tight_layout()
+        # if outpath:
+        #     fig.savefig(outpath, dpi=300, bbox_inches='tight')
+        #     print("Saved:", outpath)
+        # plt.show()
+        # ------------------------------------------------------------
+        # Right panel: parameter recovery
+        # ------------------------------------------------------------
+        pos = []
+        data_for_box = []
+        labels_for_box = []
+        colors_for_box = []
+        kinds_for_box = []
+
+        spacing = 2.2
+        within_exp_gap = 0.85
+        cur_x = 1.0
+
         for i, ex in enumerate(experiments):
-            b = betas_list[i]
-            s = sigmas_list[i]
-            if not np.all(np.isnan(b)):
-                data_for_box.append(b[~np.isnan(b)])
+            label = ex.get("label", f"exp{i}")
+            color = ex.get("color")
+
+            b = np.asarray(betas_list[i], dtype=float)
+            s = np.asarray(sigmas_list[i], dtype=float)
+
+            b = b[~np.isnan(b)]
+            s = s[~np.isnan(s)]
+
+            # -------------------------
+            # alpha
+            # -------------------------
+            if len(b):
+                data_for_box.append(b)
                 pos.append(cur_x)
-                labels_for_box.append(r'$\alpha$ ' + f'({ex.get("label")})')
-                colors_for_box.append(ex.get("color"))
-            cur_x += 0.9
-            if not np.all(np.isnan(s)):
-                data_for_box.append(s[~np.isnan(s)])
+                labels_for_box.append(r'$\alpha$' + f' ({label})')
+                colors_for_box.append(color)
+                kinds_for_box.append("alpha")
+
+            cur_x += within_exp_gap
+
+            # -------------------------
+            # sigma_0
+            # -------------------------
+            if len(s):
+                data_for_box.append(s)
                 pos.append(cur_x)
-                labels_for_box.append(r'σ₀ ' + f'({ex.get("label")})')
-                colors_for_box.append(ex.get("color"))
+                labels_for_box.append(r'$\sigma_0$' + f' ({label})')
+                colors_for_box.append(color)
+                kinds_for_box.append("sigma")
+
             cur_x += spacing
 
         if len(data_for_box):
-            bplots = ax2.boxplot(data_for_box, positions=pos, patch_artist=True, widths=0.6, showmeans=True)
-            for patch, col in zip(bplots['boxes'], colors_for_box):
-                patch.set_facecolor('white'); patch.set_edgecolor(col); patch.set_linewidth(1.4)
-            for d,p,c in zip(data_for_box, pos, colors_for_box):
-                jitter = np.random.normal(0, 0.03, size=len(d))
-                ax2.scatter(np.full(len(d), p) + jitter, d, color=c, edgecolor='k', s=26)
-            for i, ex in enumerate(experiments):
-                sig_t = ex.get("sigma_true")
-                bet_t = ex.get("beta_true")
-                if bet_t is not None:
-                    lab = r'$\alpha$ ' + f'({ex.get("label")})'
-                    if lab in labels_for_box:
-                        idx = labels_for_box.index(lab)
-                        ax2.axhline(bet_t, color=colors_for_box[idx], ls='--')
-                if sig_t is not None:
-                    lab2 = r'σ₀ (' + ex.get("label") + ')'
-                    if lab2 in labels_for_box:
-                        idx2 = labels_for_box.index(lab2)
-                        ax2.axhline(sig_t, color=colors_for_box[idx2], ls=':')
-            ax2.set_xticks(pos)
-            ax2.set_xticklabels(labels_for_box, rotation=40)
-            ax2.grid(axis='y', ls=':', alpha=0.3)
-        else:
-            ax2.text(0.5, 0.5, "No learned params found", ha='center')
 
+            # --------------------------------------------------------
+            # Boxplots
+            # --------------------------------------------------------
+            bplots = ax2.boxplot(
+                data_for_box,
+                positions=pos,
+                patch_artist=True,
+                widths=0.55,
+                showmeans=False,
+                showfliers=False,
+                medianprops=dict(
+                    color="black",
+                    linewidth=1.5
+                ),
+                whiskerprops=dict(
+                    color="black",
+                    linewidth=1.2
+                ),
+                capprops=dict(
+                    color="black",
+                    linewidth=1.2
+                )
+            )
+
+            for patch, col in zip(
+                bplots["boxes"],
+                colors_for_box
+            ):
+                patch.set_facecolor("white")
+                patch.set_edgecolor(col)
+                patch.set_linewidth(1.5)
+
+            # --------------------------------------------------------
+            # Individual replicates
+            #
+            # alpha  = circles
+            # sigma0 = squares
+            # --------------------------------------------------------
+            rng = np.random.default_rng(12345)
+
+            for d, p, c, kind in zip(
+                data_for_box,
+                pos,
+                colors_for_box,
+                kinds_for_box
+            ):
+                jitter = rng.normal(
+                    0,
+                    0.055,
+                    size=len(d)
+                )
+
+                marker = "o" if kind == "alpha" else "s"
+
+                ax2.scatter(
+                    np.full(len(d), p) + jitter,
+                    d,
+                    marker=marker,
+                    color=c,
+                    edgecolor="black",
+                    linewidth=0.7,
+                    s=42,
+                    alpha=0.9,
+                    zorder=4
+                )
+
+            # --------------------------------------------------------
+            # Means = triangles
+            # --------------------------------------------------------
+            for d, p, c in zip(
+                data_for_box,
+                pos,
+                colors_for_box
+            ):
+                ax2.scatter(
+                    p,
+                    np.mean(d),
+                    marker="^",
+                    color=c,
+                    edgecolor="black",
+                    linewidth=0.8,
+                    s=95,
+                    zorder=5
+                )
+
+            # --------------------------------------------------------
+            # True values
+            #
+            # IMPORTANT:
+            # Only draw a short segment around the relevant
+            # experiment instead of a full-width axhline().
+            # --------------------------------------------------------
+            idx = 0
+
+            for i, ex in enumerate(experiments):
+
+                color = ex.get("color")
+                beta_t = ex.get("beta_true")
+                sigma_t = ex.get("sigma_true")
+
+                # alpha position
+                if idx < len(pos):
+                    p_alpha = pos[idx]
+                    idx += 1
+
+                    if beta_t is not None:
+                        ax2.plot(
+                            [p_alpha - 1, p_alpha + 1],
+                            [beta_t, beta_t],
+                            color=color,
+                            linestyle="--",
+                            linewidth=3.0,
+                            solid_capstyle="round",
+                            zorder=2
+                        )
+
+                # sigma position
+                if idx < len(pos):
+                    p_sigma = pos[idx]
+                    idx += 1
+
+                    if sigma_t is not None:
+                        ax2.plot(
+                            [p_sigma - 1, p_sigma + 1],
+                            [sigma_t, sigma_t],
+                            color=color,
+                            linestyle=":",
+                            linewidth=3.0,
+                            solid_capstyle="round",
+                            zorder=2
+                        )
+
+            # --------------------------------------------------------
+            # Axes
+            # --------------------------------------------------------
+            ax2.set_xticks(pos)
+            ax2.set_xticklabels(
+                labels_for_box,
+                rotation=40,
+                ha="right"
+            )
+
+            ax2.grid(
+                axis="y",
+                linestyle=":",
+                alpha=0.3
+            )
+
+            # --------------------------------------------------------
+            # Legend for marker meanings
+            # --------------------------------------------------------
+            from matplotlib.lines import Line2D
+
+            legend_handles = [
+                Line2D(
+                    [0], [0],
+                    marker="o",
+                    linestyle="none",
+                    markerfacecolor="gray",
+                    markeredgecolor="black",
+                    markersize=7,
+                    label=r"$\alpha$ replicate"
+                ),
+                Line2D(
+                    [0], [0],
+                    marker="s",
+                    linestyle="none",
+                    markerfacecolor="gray",
+                    markeredgecolor="black",
+                    markersize=7,
+                    label=r"$\sigma_0$ replicate"
+                ),
+                Line2D(
+                    [0], [0],
+                    marker="^",
+                    linestyle="none",
+                    markerfacecolor="gray",
+                    markeredgecolor="black",
+                    markersize=8,
+                    label="mean"
+                ),
+                Line2D(
+                    [0], [0],
+                    color="black",
+                    linestyle="--",
+                    linewidth=3,
+                    label=r"true $\alpha$"
+                ),
+                Line2D(
+                    [0], [0],
+                    color="black",
+                    linestyle=":",
+                    linewidth=3,
+                    label=r"true $\sigma_0$"
+                ),
+            ]
+
+            ax2.legend(
+                handles=legend_handles,
+                loc="upper left",
+                fontsize=8
+            )
+
+        else:
+            ax2.text(
+                0.5,
+                0.5,
+                "No learned params found",
+                ha="center",
+                va="center",
+                transform=ax2.transAxes
+            )
         plt.tight_layout()
         if outpath:
             fig.savefig(outpath, dpi=300, bbox_inches='tight')
@@ -1203,3 +1484,188 @@ class plotters:
         if good.sum() == 0:
             return np.nan, runs, rmses, mean_curve
         return float(np.nanmean(rmses[good])), runs, rmses, mean_curve
+
+
+def fit_power_noise_from_residuals_logreg(
+    residuals,
+    mu,
+    min_abs_resid=1e-8,
+    min_mu=1e-8,
+    max_mu=None,
+):
+    """
+    Fit sigma(mu) = sigma0 * |mu|^alpha from residuals using
+
+        log|e| = log(sigma0) + alpha log|mu| + log|Z|,
+        Z ~ N(0,1).
+
+    Because E[log|Z|] = -(gamma + log(2))/2, the OLS intercept
+    requires a correction to recover log(sigma0).
+
+    Parameters
+    ----------
+    residuals : array-like
+        Residuals e = y - mu, flattened.
+    mu : array-like
+        Corresponding fitted mean values.
+    min_abs_resid : float
+        Residuals smaller than this are excluded from the log fit.
+    min_mu : float
+        Mean values smaller than this are excluded.
+    max_mu : float or None
+        Optional upper cutoff on mu.
+
+    Returns
+    -------
+    sigma0_hat : float
+    alpha_hat : float
+    details : dict
+    """
+
+    residuals = np.asarray(residuals, dtype=float).ravel()
+    mu = np.asarray(mu, dtype=float).ravel()
+
+    mask = (
+        np.isfinite(residuals)
+        & np.isfinite(mu)
+        & (np.abs(residuals) > min_abs_resid)
+        & (np.abs(mu) > min_mu)
+    )
+
+    if max_mu is not None:
+        mask &= (np.abs(mu) <= max_mu)
+
+    e = residuals[mask]
+    u = np.abs(mu[mask])
+
+    if len(e) < 5:
+        raise ValueError(
+            f"Too few valid residuals for noise fit: {len(e)}"
+        )
+
+    log_abs_e = np.log(np.abs(e))
+    log_u = np.log(u)
+
+    # OLS:
+    # log|e| = intercept + alpha * log|u|
+    alpha_hat, intercept_naive = np.polyfit(
+        log_u,
+        log_abs_e,
+        1
+    )
+
+    # For Z ~ N(0,1):
+    # E[log|Z|] = -(EulerGamma + log(2))/2
+    euler_gamma = 0.5772156649015329
+    correction = 0.5 * (euler_gamma + np.log(2.0))
+
+    # intercept_naive =
+    #     log(sigma0) + E[log|Z|]
+    #
+    # therefore:
+    # log(sigma0) = intercept_naive + correction
+    log_sigma0_hat = intercept_naive + correction
+    sigma0_hat = np.exp(log_sigma0_hat)
+
+    # fitted standard deviation
+    sigma_hat = sigma0_hat * u**alpha_hat
+
+    # Useful diagnostics
+    log_pred = intercept_naive + alpha_hat * log_u
+    ss_res = np.sum((log_abs_e - log_pred)**2)
+    ss_tot = np.sum((log_abs_e - np.mean(log_abs_e))**2)
+    r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else np.nan
+
+    return float(sigma0_hat), float(alpha_hat), {
+        "n": len(e),
+        "mask": mask,
+        "residuals": e,
+        "mu": u,
+        "log_abs_residual": log_abs_e,
+        "log_mu": log_u,
+        "intercept_naive": float(intercept_naive),
+        "log_sigma0": float(log_sigma0_hat),
+        "sigma_hat": sigma_hat,
+        "r2_logscale": float(r2),
+    }
+
+
+def fit_two_stage_noise_from_ensemble(
+    ensemble,
+    min_abs_resid=1e-8,
+    min_mu=1e-8,
+    max_mu=None,
+):
+    """
+    Apply the direct residual-based power-law noise fit to every
+    RMSE-trained BINN ensemble member.
+
+    Expected ensemble fields:
+        C_full_runs : (N_ens, T)
+        C_reps      : (R, T)
+
+    Returns
+    -------
+    dict containing sigma0 and alpha for each ensemble member,
+    plus fitted sigma curves.
+    """
+
+    C_full_runs = np.asarray(ensemble["C_full_runs"], dtype=float)
+    C_reps = np.asarray(ensemble["C_reps"], dtype=float)
+
+    n_ens, T = C_full_runs.shape
+    R, T_obs = C_reps.shape
+
+    if T_obs != T:
+        raise ValueError(
+            f"Time mismatch: C_full_runs has T={T}, "
+            f"but C_reps has T={T_obs}"
+        )
+
+    sigma_runs = []
+    alpha_runs = []
+    fit_details = []
+
+    for k in range(n_ens):
+
+        # Same fitted u(t) is compared against every observed replicate.
+        mu = C_full_runs[k, :]
+
+        # Shape:
+        # residuals -> (R, T)
+        residual_matrix = C_reps - mu[None, :]
+
+        residuals = residual_matrix.ravel()
+        mu_rep = np.broadcast_to(mu[None, :], residual_matrix.shape).ravel()
+
+        sigma0_hat, alpha_hat, details = (
+            BINNs.fit_power_noise_from_residuals_logreg(
+                residuals=residuals,
+                mu=mu_rep,
+                min_abs_resid=min_abs_resid,
+                min_mu=min_mu,
+                max_mu=max_mu,
+            )
+        )
+
+        sigma_runs.append(sigma0_hat)
+        alpha_runs.append(alpha_hat)
+        fit_details.append(details)
+
+    sigma_runs = np.asarray(sigma_runs, dtype=np.float32)
+    alpha_runs = np.asarray(alpha_runs, dtype=np.float32)
+
+    mu_mean = np.mean(C_full_runs, axis=0)
+
+    sigma_full_runs = np.asarray([
+        sigma0 * np.maximum(np.abs(mu_mean), min_mu)**alpha
+        for sigma0, alpha in zip(sigma_runs, alpha_runs)
+    ], dtype=np.float32)
+
+    return {
+        "sigma_base_runs": sigma_runs,
+        "beta_runs": alpha_runs,
+        "sigma_full_runs": sigma_full_runs,
+        "sigma_full_mean": np.mean(sigma_full_runs, axis=0),
+        "fit_details": fit_details,
+    }
